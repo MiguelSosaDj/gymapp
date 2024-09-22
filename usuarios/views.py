@@ -46,7 +46,7 @@ class HomeDataView(APIView):
             id=Subquery(latest_gestante_info.values('id')[:1])
         ).distinct('identificacion')
 
-        # Para NinoInfo
+        # Para NinoInfo miguel sosa
         latest_nino_info = NinoInfo.objects.filter(
             identificacion=OuterRef('identificacion')
         ).order_by('-id')
