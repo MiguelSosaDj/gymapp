@@ -123,6 +123,7 @@ class GestanteInfo(BaseUserInfo):
     imc_gestacional = models.FloatField(default=0.0)
     imc_pregestacional_cat = models.CharField(max_length=50, default='No calculado')
 
+
     def __str__(self):
         return self.nombre
 
@@ -165,39 +166,45 @@ class NinoSanoInfo(models.Model):
 class BajoPesoInfo(models.Model):
     base_info = models.OneToOneField(GestanteInfo, on_delete=models.CASCADE)
 
-    # Datos calculados relacionados al peso
+    # Título 2: Peso de referencia
     imc_saludable = models.FloatField(default=0.0)
     peso_pregestacional_saludable = models.FloatField(default=0.0)
+
+    # Título 3: Ganancia de peso
     gramos_semana = models.FloatField(default=0.0)
     ganancia_1_trimestre = models.FloatField(default=2.0)
     ganancia_2_y_3_trimestre_gramos = models.FloatField(default=0.0)
     ganancia_2_y_3_trimestre_kg = models.FloatField(default=0.0)
-    ganancia_total = models.FloatField(default=0.0)
     peso_total_embarazo = models.FloatField(default=0.0)
-    imc_semana_40 = models.FloatField(default=0.0)
+    peso_final = models.FloatField(default=0.0)  # Campo agregado que faltaba
 
-    # Ruta de % de peso pregestacional saludable
-    ganancia_peso_embarazo = models.FloatField(default=0.0)
-    ganancia_2_y_3_trimestre_parte2 = models.FloatField(default=0.0)
-    peso_total_parte2 = models.FloatField(default=0.0)
-    imc_semana_40_parte2 = models.FloatField(default=0.0)
+    # Título 4: % de peso pregestacional saludable
+    ganancia_peso_embarazo = models.FloatField(default=0.0)  # Campo 1
+    ganancia_peso_clasificacion = models.CharField(max_length=50, default='Adecuado')  # Campo 2
+    ganancia_primer_trimestre = models.FloatField(default=0.0)  # Campo 3
+    ganancia_2y3_trimestre_gsem = models.FloatField(default=0.0)  # Campo 4
+    peso_total_embarazo_titulo_4 = models.FloatField(default=0.0)  # Campo 5
+    imc_semana_40 = models.FloatField(default=0.0)  # Campo 6
 
-    # Evaluación de ganancia de peso
-    ganado = models.FloatField(default=0.0)
-    debio_ganar = models.FloatField(default=0.0)
+    # Título 5: Evaluación de ganancia de peso
+    ganancia_tipo = models.CharField(max_length=50, default="g/sem")  # Campo 1
+    gano = models.FloatField(default=0.0)  # Campo 2
+    debio_ganar = models.FloatField(default=0.0)  # Campo 3
 
-    # Reprogramación
-    peso_a_ganar = models.FloatField(default=0.0)
-    semanas_faltantes = models.IntegerField(default=0)
-    gramos_por_semana = models.FloatField(default=0.0)
-    clasificacion_peso = models.CharField(max_length=50, default="Adecuado")
+    # Título 6: Reprogramación
+    peso_a_ganar = models.FloatField(default=0.0)  # Campo 1
+    semanas_faltantes = models.IntegerField(default=0)  # Campo 2
+    gramos_por_semana = models.FloatField(default=0.0)  # Campo 3
+    clasificacion_gramos = models.CharField(max_length=50, default="Adecuado")  # Campo 4
 
-    # Requerimiento de energía
+    # Título 7: Requerimiento de energía
     tasa_metabolica = models.FloatField(default=0.0)
     factor_actividad_fisica = models.FloatField(default=1.4)
     requerimiento_energia_total = models.FloatField(default=0.0)
+    adicion_gestante = models.FloatField(default=0.0)  # Campo agregado que faltaba
+    total_energia_adicion = models.FloatField(default=0.0)  # Campo agregado que faltaba
 
-    # Aporte proteico
+    # Título 8: Aporte proteico
     metodo1_g_dia = models.FloatField(default=0.0)
     metodo1_kcal = models.FloatField(default=0.0)
     metodo1_amdr = models.FloatField(default=0.0)
@@ -207,3 +214,60 @@ class BajoPesoInfo(models.Model):
 
     def __str__(self):
         return f'Bajo Peso - {self.base_info.nombre}'
+
+
+class SobrePesoInfo(models.Model):
+    base_info = models.OneToOneField(GestanteInfo, on_delete=models.CASCADE)
+
+    # Título 2: Peso de referencia
+    imc_saludable = models.FloatField(default=0.0)
+    peso_pregestacional_saludable = models.FloatField(default=0.0)
+
+    # Título 3: Ganancia de peso
+    gramos_semana = models.FloatField(default=0.0)
+    ganancia_1_trimestre = models.FloatField(default=2.0)
+    ganancia_2_y_3_trimestre_gramos = models.FloatField(default=0.0)
+    ganancia_2_y_3_trimestre_kg = models.FloatField(default=0.0)
+    ganancia_total = models.FloatField(default=0.0)
+    peso_total_embarazo = models.FloatField(default=0.0)
+    imc_semana_40 = models.FloatField(default=0.0)
+
+    # Título 4: % de peso pregestacional saludable (6 campos)
+    ganancia_peso_embarazo = models.FloatField(default=0.0)  # Campo 1
+    ganancia_peso_clasificacion = models.CharField(max_length=50, default="Adecuado")  # Campo 2
+    ganancia_primer_trimestre = models.FloatField(default=2.0)  # Campo 3
+    ganancia_2y3_trimestre_gsem = models.FloatField(default=0.0)  # Campo 4
+    peso_total_embarazo_titulo_4 = models.FloatField(default=0.0)  # Campo 5
+    imc_semana_40_titulo_4 = models.FloatField(default=0.0)  # Campo 6
+
+    # Título 5: Evaluación de ganancia de peso
+    ganancia_tipo = models.CharField(max_length=50, default="g/sem")
+    gano = models.FloatField(default=0.0)
+    debio_ganar = models.FloatField(default=0.0)
+
+    # Título 6: Reprogramación
+    peso_a_ganar = models.FloatField(default=0.0)
+    semanas_faltantes = models.IntegerField(default=0)
+    gramos_por_semana = models.FloatField(default=0.0)
+    clasificacion_gramos = models.CharField(max_length=50, default="Adecuado")
+
+    # Título 7: Requerimiento de energía (5 campos)
+    tasa_metabolica = models.FloatField(default=0.0)  # Campo 1
+    factor_actividad_fisica = models.FloatField(default=1.4)  # Campo 2
+    requerimiento_energia_total = models.FloatField(default=0.0)  # Campo 3
+    adicion_gestante = models.FloatField(default=500)  # Campo 4
+    total_energia_adicion = models.FloatField(default=0.0)  # Campo 5 (Requerimiento total de energía sumando la adición)
+
+    # Título 8: Aporte proteico
+    metodo1_g_dia = models.FloatField(default=0.0)
+    metodo1_kcal = models.FloatField(default=0.0)
+    metodo1_amdr = models.FloatField(default=0.0)
+    metodo2_g_dia = models.FloatField(default=0.0)
+    metodo2_kcal = models.FloatField(default=0.0)
+    metodo2_amdr = models.FloatField(default=0.0)
+
+    # Fecha de creación
+    fecha_creacion = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f'Sobrepeso - {self.base_info.nombre}'

@@ -11,14 +11,9 @@ from django.views.decorators.csrf import csrf_exempt
 import json
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth import authenticate
-from .models import NinoInfo, LactanteInfo, GestanteInfo, Gimnasio, Usuario, Entrenamiento, Alumno, NinoSanoInfo, BajoPesoInfo
+from .models import NinoInfo, LactanteInfo, GestanteInfo, Gimnasio, Usuario, Entrenamiento, Alumno, NinoSanoInfo, BajoPesoInfo, SobrePesoInfo
 from .serializers import LactanteInfoSerializer, GestanteInfoSerializer, NinoInfoSerializer, AlumnoSerializer, EntrenamientoSerializer
-
-
-
-
-
-
+from rest_framework.decorators import api_view
 
 class HomeDataView(APIView):
     authentication_classes = []  # Quitar JWTAuthentication temporalmente
@@ -55,7 +50,7 @@ class HomeDataView(APIView):
             id=Subquery(latest_nino_info.values('id')[:1])
         ).distinct('identificacion')
         
-        import pdb; pdb.set_trace()
+        
 
         data = {
             'lactante_info': LactanteInfoSerializer(lactante_info, many=True).data,
@@ -96,6 +91,8 @@ class PersonasView(APIView):
         }
 
         return Response(data, status=status.HTTP_200_OK)
+
+
 class LoginView(APIView):
     authentication_classes = []  # Quitar JWTAuthentication temporalmente
     permission_classes = []  # Quitar IsAuthenticated temporalmente
@@ -113,6 +110,11 @@ class LoginView(APIView):
                 'user_id': user.id,
             })
         return Response({'error': 'Credenciales inválidas'}, status=401)
+    
+    def get(self, request):
+        # Aquí puedes devolver alguna información útil o indicar que el método GET no es soportado
+        return Response({'detail': 'Este endpoint es para autenticación mediante POST.'}, status=200)
+
 
 class SaveNinoInfo(APIView):
     authentication_classes = []  # Quitar JWTAuthentication temporalmente
@@ -211,13 +213,14 @@ class SaveGestanteInfo(APIView):
             gimnasio = Gimnasio.objects.get(id=1)
             nombre = request.data.get('nombre')
             edad = int(request.data.get('edad'))
-            estatura = float(request.data.get('estatura'))
+            estatura = float(request.data.get('estatura'))/100
             semana_gestacion = int(request.data.get('semana_gestacion'))
+            
             peso_actual = float(request.data.get('peso_actual'))
             peso_pregestacional = float(request.data.get('peso_pregestacional'))
             identification = request.data.get('identification')
 
-            imc_pregestacional = peso_pregestacional / (estatura ** 2)
+            imc_pregestacional = peso_pregestacional / ((estatura) ** 2)
             imc_gestacional = peso_actual / (estatura ** 2)
 
             if imc_pregestacional < 20:
@@ -658,141 +661,81 @@ class GestanteView(APIView):
     permission_classes = []
 
     def post(self, request):
-        
         try:
             data = json.loads(request.body)
+            
 
-            # Obtener o crear la gestante
-            gestante_info, created = GestanteInfo.objects.get_or_create(
+            # Obtener o crear la información básica de la gestante
+            gestante_info = GestanteInfo.objects.create(
                 identificacion=data.get('identificacion'),
-                defaults={
-                    'nombre': data.get('nombre'),
-                    'edad': data.get('edad'),
-                    'estatura': data.get('estatura'),
-                    'peso_pregestacional': data.get('peso_pregestacional'),
-                    'peso_actual': data.get('peso_actual'),
-                    'imc_pregestacional': data.get('imc_pregestacional'),
-                    'imc_gestacional': data.get('imc_gestacional'),
-                    'semana_gestacion': data.get('semana_gestacion'),
-                    'seleccion_multiple': data.get('seleccion_multiple', 'adecuado')
-                }
+                nombre=data.get('nombre'),
+                edad=data.get('edad'),
+                estatura=data.get('estatura'),
+                peso_actual=data.get('peso_actual'),
+                peso_pregestacional=data.get('peso_pregestacional'),
+                imc_pregestacional=data.get('imc_pregestacional'),
+                imc_gestacional=data.get('imc_gestacional'),
+                semana_gestacion=data.get('semana_gestacion'),
+                seleccion_multiple=data.get('clasificacion_peso', 'bajo_peso'),
             )
 
-            if not created:
-                gestante_info.nombre = data.get('nombre', gestante_info.nombre)
-                gestante_info.edad = data.get('edad', gestante_info.edad)
-                gestante_info.estatura = data.get('estatura', gestante_info.estatura)
-                gestante_info.peso_pregestacional = data.get('peso_pregestacional', gestante_info.peso_pregestacional)
-                gestante_info.peso_actual = data.get('peso_actual', gestante_info.peso_actual)
-                gestante_info.imc_pregestacional = data.get('imc_pregestacional', gestante_info.imc_pregestacional)
-                gestante_info.imc_gestacional = data.get('imc_gestacional', gestante_info.imc_gestacional)
-                gestante_info.semana_gestacion = data.get('semana_gestacion', gestante_info.semana_gestacion)
-                gestante_info.seleccion_multiple = data.get('seleccion_multiple', gestante_info.seleccion_multiple)
-                gestante_info.save()
-
-            # Procesar los cálculos y almacenar en el modelo BajoPesoInfo
-            imc_saludable = float(data.get('imc_saludable'))
-            peso_pregestacional_saludable = float(data.get('peso_pregestacional_saludable'))
-            gramos_semana = float(data.get('gramos_semana'))
-            ganancia_1_trimestre = float(data.get('ganancia_1_trimestre'))
-            ganancia_2_y_3_trimestre_gramos = float(data.get('ganancia_2_y_3_trimestre_gramos'))
-            ganancia_2_y_3_trimestre_kg = float(data.get('ganancia_2_y_3_trimestre_kg'))
-            ganancia_total = float(data.get('ganancia_total'))
-            peso_total_embarazo = float(data.get('peso_total_embarazo'))
-            imc_semana_40 = float(data.get('imc_semana_40'))
-            tasa_metabolica = float(data.get('tasa_metabolica'))
-            factor_actividad_fisica = float(data.get('factor_actividad_fisica'))
-            requerimiento_energia_total = float(data.get('requerimiento_energia_total'))
-            metodo1_g_dia = float(data.get('metodo1_g_dia'))
-            metodo1_kcal = float(data.get('metodo1_kcal'))
-            metodo1_amdr = float(data.get('metodo1_amdr'))
-            metodo2_g_dia = float(data.get('metodo2_g_dia'))
-            metodo2_kcal = float(data.get('metodo2_kcal'))
-            metodo2_amdr = float(data.get('metodo2_amdr'))
-
-            # Valores adicionales
-            ganancia_peso_embarazo = float(data.get('ganancia_peso'))
-            ganancia_2_y_3_trimestre_parte2 = float(data.get('ganancia_2_y_3_trimestre_parte2'))
-            peso_total_parte2 = float(data.get('peso_total_parte2'))
-            imc_semana_40_parte2 = float(data.get('imc_semana_40_parte2'))
-            ganado = float(data.get('ganado'))
-            debio_ganar = float(data.get('debio_ganar'))
-            peso_a_ganar = float(data.get('peso_a_ganar'))
-            gramos_por_semana = float(data.get('gramos_por_semana'))
-            clasificacion_peso = data.get('clasificacion_peso')
-
-            # Crear o actualizar la información de Bajo Peso
-            bajo_peso_info, created = BajoPesoInfo.objects.get_or_create(
+            bajo_peso_info = BajoPesoInfo.objects.create(
                 base_info=gestante_info,
-                defaults={
-                    'imc_saludable': imc_saludable,
-                    'peso_pregestacional_saludable': peso_pregestacional_saludable,
-                    'gramos_semana': gramos_semana,
-                    'ganancia_1_trimestre': ganancia_1_trimestre,
-                    'ganancia_2_y_3_trimestre_gramos': ganancia_2_y_3_trimestre_gramos,
-                    'ganancia_2_y_3_trimestre_kg': ganancia_2_y_3_trimestre_kg,
-                    'ganancia_total': ganancia_total,
-                    'peso_total_embarazo': peso_total_embarazo,
-                    'imc_semana_40': imc_semana_40,
-                    'tasa_metabolica': tasa_metabolica,
-                    'factor_actividad_fisica': factor_actividad_fisica,
-                    'requerimiento_energia_total': requerimiento_energia_total,
-                    'metodo1_g_dia': metodo1_g_dia,
-                    'metodo1_kcal': metodo1_kcal,
-                    'metodo1_amdr': metodo1_amdr,
-                    'metodo2_g_dia': metodo2_g_dia,
-                    'metodo2_kcal': metodo2_kcal,
-                    'metodo2_amdr': metodo2_amdr,
-                    'ganancia_peso_embarazo': ganancia_peso_embarazo,
-                    'ganancia_2_y_3_trimestre_parte2': ganancia_2_y_3_trimestre_parte2,
-                    'peso_total_parte2': peso_total_parte2,
-                    'imc_semana_40_parte2': imc_semana_40_parte2,
-                    'ganado': ganado,
-                    'debio_ganar': debio_ganar,
-                    'peso_a_ganar': peso_a_ganar,
-                    'gramos_por_semana': gramos_por_semana,
-                    'clasificacion_peso': clasificacion_peso,
-                }
-            )
+                # Título 2
+                imc_saludable=data.get('imc_saludable', 0.0),
+                peso_pregestacional_saludable=data.get('peso_pregestacional_saludable', 0.0),
 
-            if not created:
-                # Actualizar los valores existentes
-                bajo_peso_info.imc_saludable = imc_saludable
-                bajo_peso_info.peso_pregestacional_saludable = peso_pregestacional_saludable
-                bajo_peso_info.gramos_semana = gramos_semana
-                bajo_peso_info.ganancia_1_trimestre = ganancia_1_trimestre
-                bajo_peso_info.ganancia_2_y_3_trimestre_gramos = ganancia_2_y_3_trimestre_gramos
-                bajo_peso_info.ganancia_2_y_3_trimestre_kg = ganancia_2_y_3_trimestre_kg
-                bajo_peso_info.ganancia_total = ganancia_total
-                bajo_peso_info.peso_total_embarazo = peso_total_embarazo
-                bajo_peso_info.imc_semana_40 = imc_semana_40
-                bajo_peso_info.tasa_metabolica = tasa_metabolica
-                bajo_peso_info.factor_actividad_fisica = factor_actividad_fisica
-                bajo_peso_info.requerimiento_energia_total = requerimiento_energia_total
-                bajo_peso_info.metodo1_g_dia = metodo1_g_dia
-                bajo_peso_info.metodo1_kcal = metodo1_kcal
-                bajo_peso_info.metodo1_amdr = metodo1_amdr
-                bajo_peso_info.metodo2_g_dia = metodo2_g_dia
-                bajo_peso_info.metodo2_kcal = metodo2_kcal
-                bajo_peso_info.metodo2_amdr = metodo2_amdr
-                bajo_peso_info.ganancia_peso_embarazo = ganancia_peso_embarazo
-                bajo_peso_info.ganancia_2_y_3_trimestre_parte2 = ganancia_2_y_3_trimestre_parte2
-                bajo_peso_info.peso_total_parte2 = peso_total_parte2
-                bajo_peso_info.imc_semana_40_parte2 = imc_semana_40_parte2
-                bajo_peso_info.ganado = ganado
-                bajo_peso_info.debio_ganar = debio_ganar
-                bajo_peso_info.peso_a_ganar = peso_a_ganar
-                bajo_peso_info.gramos_por_semana = gramos_por_semana
-                bajo_peso_info.clasificacion_peso = clasificacion_peso
-                bajo_peso_info.save()
+                # Título 3
+                gramos_semana=data.get('gramos_semana', 0.0),
+                ganancia_1_trimestre=data.get('ganancia_1_trimestre', 0.0),
+                ganancia_2_y_3_trimestre_gramos=data.get('ganancia_2_y_3_trimestre_gramos', 0.0),
+                ganancia_2_y_3_trimestre_kg=data.get('ganancia_2_y_3_trimestre_kg', 0.0),
+                peso_total_embarazo=data.get('peso_total_embarazo', 0.0),
+                peso_final=data.get('peso_final', 0.0),  # Campo agregado que faltaba
+
+                # Título 4
+                ganancia_peso_embarazo=data.get('ganancia_peso_embarazo', 0.0),
+                ganancia_peso_clasificacion=data.get('ganancia_peso_clasificacion', 'Adecuado'),
+                ganancia_primer_trimestre=data.get('ganancia_primer_trimestre', 0.0),
+                ganancia_2y3_trimestre_gsem=data.get('ganancia_2y3_trimestre_gsem', 0.0),
+                peso_total_embarazo_titulo_4=data.get('peso_total_embarazo_titulo_4', 0.0),
+                imc_semana_40=data.get('imc_semana_40', 0.0),
+
+                # Título 5
+                ganancia_tipo=data.get('ganancia_tipo', 'g/sem'),
+                gano=data.get('gano', 0.0),
+                debio_ganar=data.get('debio_ganar', 0.0),
+
+                # Título 6
+                peso_a_ganar=data.get('peso_a_ganar', 0.0),
+                semanas_faltantes=data.get('semanas_faltantes', 0),
+                gramos_por_semana=data.get('gramos_por_semana', 0.0),
+                clasificacion_gramos=data.get('clasificacion_gramos', 'Adecuado'),
+
+                # Título 7
+                tasa_metabolica=data.get('tasa_metabolica', 0.0),
+                factor_actividad_fisica=data.get('factor_actividad_fisica', 1.4),
+                requerimiento_energia_total=data.get('requerimiento_energia_total', 0.0),
+                adicion_gestante=data.get('adicion_gestante', 0.0),  # Campo agregado que faltaba
+                total_energia_adicion=data.get('total_energia_adicion', 0.0),  # Campo agregado que faltaba
+
+                # Título 8
+                metodo1_g_dia=data.get('metodo1_g_dia', 0.0),
+                metodo1_kcal=data.get('metodo1_kcal', 0.0),
+                metodo1_amdr=data.get('metodo1_amdr', 0.0),
+                metodo2_g_dia=data.get('metodo2_g_dia', 0.0),
+                metodo2_kcal=data.get('metodo2_kcal', 0.0),
+                metodo2_amdr=data.get('metodo2_amdr', 0.0),
+            )
 
             return Response({"message": "Datos guardados correctamente"}, status=status.HTTP_200_OK)
 
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
+
     def get(self, request, gestante_id):
-        import pdb; pdb.set_trace()
+        
         try:
             # Buscar la información de la gestante
             gestante_info = GestanteInfo.objects.get(id=gestante_id)
@@ -846,3 +789,157 @@ class GestanteView(APIView):
 
         except (GestanteInfo.DoesNotExist, BajoPesoInfo.DoesNotExist):
             return Response({"error": "Gestante no encontrada"}, status=status.HTTP_404_NOT_FOUND)
+
+
+@method_decorator(csrf_exempt, name='dispatch')
+class SobrePesoView(APIView):
+    authentication_classes = []
+    permission_classes = []
+
+    def post(self, request):
+        try:
+            data = json.loads(request.body)
+
+            # Título 1: Datos personales
+              # Obtener o crear la información básica de la gestante
+            
+            gestante_info = GestanteInfo.objects.create(
+                identificacion=data.get('identificacion'),
+                nombre=data.get('nombre'),
+                edad=data.get('edad'),
+                estatura=data.get('estatura'),
+                peso_actual=data.get('peso_actual'),
+                peso_pregestacional=data.get('peso_pregestacional'),
+                imc_pregestacional=data.get('imc_pregestacional'),
+                imc_gestacional=data.get('imc_gestacional'),
+                semana_gestacion=data.get('semana_gestacion'),
+                seleccion_multiple=data.get('clasificacion_peso', 'Sobrepeso'),
+            )
+
+            # Título 2: Peso de referencia
+            sobrepeso_info = SobrePesoInfo.objects.create(
+                base_info=gestante_info,
+                imc_saludable=data.get('imc_saludable', 0.0),
+                peso_pregestacional_saludable=data.get('peso_pregestacional_saludable', 0.0),
+
+                # Título 3: Ganancia de peso
+                gramos_semana=data.get('gramos_semana', 0.0),
+                ganancia_1_trimestre=data.get('ganancia_1_trimestre', 0.0),
+                ganancia_2_y_3_trimestre_gramos=data.get('ganancia_2_y_3_trimestre_gramos', 0.0),
+                ganancia_2_y_3_trimestre_kg=data.get('ganancia_2_y_3_trimestre_kg', 0.0),
+                peso_total_embarazo=data.get('peso_total_embarazo', 0.0),
+                imc_semana_40=data.get('imc_semana_40', 0.0),
+
+                # Título 4: % de peso pregestacional saludable (6 campos)
+                ganancia_peso_embarazo=data.get('ganancia_peso_embarazo', 0.0),         # Campo 1
+                ganancia_peso_clasificacion=data.get('ganancia_peso_clasificacion', ''), # Campo 2
+                ganancia_primer_trimestre=data.get('ganancia_primer_trimestre', 0.0),    # Campo 3
+                ganancia_2y3_trimestre_gsem=data.get('ganancia_2y3_trimestre_gsem', 0.0),# Campo 4
+                peso_total_embarazo_titulo_4=data.get('peso_total_embarazo_titulo_4', 0.0), # Campo 5
+                imc_semana_40_titulo_4=data.get('imc_semana_40_titulo_4', 0.0),          # Campo 6
+
+                # Título 5: Evaluación de ganancia de peso
+                ganancia_tipo=data.get('ganancia_tipo', 'g/sem'),
+                gano=data.get('gano', 0.0),
+                debio_ganar=data.get('debio_ganar', 0.0),
+
+                # Título 6: Reprogramación
+                peso_a_ganar=data.get('peso_a_ganar', 0.0),
+                semanas_faltantes=data.get('semanas_faltantes', 0),
+                gramos_por_semana=data.get('gramos_por_semana', 0.0),
+                clasificacion_gramos=data.get('clasificacion_gramos', 'Adecuado'),
+
+                # Título 7: Requerimiento de energía (5 campos)
+                tasa_metabolica=data.get('tasa_metabolica', 0.0),              # Campo 1
+                factor_actividad_fisica=data.get('factor_actividad_fisica', 1.4), # Campo 2
+                requerimiento_energia_total=data.get('requerimiento_energia_total', 0.0), # Campo 3
+                adicion_gestante=data.get('adicion_gestante', 500),            # Campo 4
+                total_energia_adicion=data.get('total_energia_adicion', 0.0),  # Campo 5
+
+                # Título 8: Aporte proteico
+                metodo1_g_dia=data.get('metodo1_g_dia', 0.0),
+                metodo1_kcal=data.get('metodo1_kcal', 0.0),
+                metodo1_amdr=data.get('metodo1_amdr', 0.0),
+                metodo2_g_dia=data.get('metodo2_g_dia', 0.0),
+                metodo2_kcal=data.get('metodo2_kcal', 0.0),
+                metodo2_amdr=data.get('metodo2_amdr', 0.0)
+            )
+
+            return Response({"message": "Datos de sobrepeso guardados correctamente"}, status=status.HTTP_200_OK)
+
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+    def get(self, request, gestante_id):
+        try:
+            # Buscar la información de la gestante
+            gestante_info = GestanteInfo.objects.get(id=gestante_id)
+            sobrepeso_info = SobrePesoInfo.objects.get(base_info=gestante_info)
+
+            # Crear la respuesta con toda la información relevante
+            data = {
+                # Título 1: Datos personales
+                'gestante_info': {
+                    'nombre': gestante_info.nombre,
+                    'edad': gestante_info.edad,
+                    'estatura': gestante_info.estatura,
+                    'peso_actual': gestante_info.peso_actual,
+                    'peso_pregestacional': gestante_info.peso_pregestacional,
+                    'imc_pregestacional': gestante_info.imc_pregestacional,
+                    'imc_gestacional': gestante_info.imc_gestacional,
+                    'semana_gestacion': gestante_info.semana_gestacion,
+                    'seleccion_multiple': gestante_info.seleccion_multiple
+                },
+                # Título 2: Peso de referencia
+                'sobrepeso_info': {
+                    'imc_saludable': sobrepeso_info.imc_saludable,
+                    'peso_pregestacional_saludable': sobrepeso_info.peso_pregestacional_saludable,
+                    
+                    # Título 3: Ganancia de peso
+                    'gramos_semana': sobrepeso_info.gramos_semana,
+                    'ganancia_1_trimestre': sobrepeso_info.ganancia_1_trimestre,
+                    'ganancia_2_y_3_trimestre_gramos': sobrepeso_info.ganancia_2_y_3_trimestre_gramos,
+                    'ganancia_2_y_3_trimestre_kg': sobrepeso_info.ganancia_2_y_3_trimestre_kg,
+                    'peso_total_embarazo': sobrepeso_info.peso_total_embarazo,
+                    'imc_semana_40': sobrepeso_info.imc_semana_40,
+
+                    # Título 4: % de peso pregestacional saludable (6 campos)
+                    'ganancia_peso_embarazo': sobrepeso_info.ganancia_peso_embarazo,          # Campo 1
+                    'ganancia_peso_clasificacion': sobrepeso_info.ganancia_peso_clasificacion, # Campo 2
+                    'ganancia_primer_trimestre': sobrepeso_info.ganancia_primer_trimestre,     # Campo 3
+                    'ganancia_2y3_trimestre_gsem': sobrepeso_info.ganancia_2y3_trimestre_gsem,# Campo 4
+                    'peso_total_embarazo_titulo_4': sobrepeso_info.peso_total_embarazo_titulo_4, # Campo 5
+                    'imc_semana_40_titulo_4': sobrepeso_info.imc_semana_40_titulo_4,           # Campo 6
+
+                    # Título 5: Evaluación de ganancia de peso
+                    'ganancia_tipo': sobrepeso_info.ganancia_tipo,
+                    'gano': sobrepeso_info.gano,
+                    'debio_ganar': sobrepeso_info.debio_ganar,
+
+                    # Título 6: Reprogramación
+                    'peso_a_ganar': sobrepeso_info.peso_a_ganar,
+                    'semanas_faltantes': sobrepeso_info.semanas_faltantes,
+                    'gramos_por_semana': sobrepeso_info.gramos_por_semana,
+                    'clasificacion_gramos': sobrepeso_info.clasificacion_gramos,
+
+                    # Título 7: Requerimiento de energía (5 campos)
+                    'tasa_metabolica': sobrepeso_info.tasa_metabolica,              # Campo 1
+                    'factor_actividad_fisica': sobrepeso_info.factor_actividad_fisica, # Campo 2
+                    'requerimiento_energia_total': sobrepeso_info.requerimiento_energia_total, # Campo 3
+                    'adicion_gestante': sobrepeso_info.adicion_gestante,            # Campo 4
+                    'total_energia_adicion': sobrepeso_info.total_energia_adicion,  # Campo 5
+
+                    # Título 8: Aporte proteico
+                    'metodo1_g_dia': sobrepeso_info.metodo1_g_dia,
+                    'metodo1_kcal': sobrepeso_info.metodo1_kcal,
+                    'metodo1_amdr': sobrepeso_info.metodo1_amdr,
+                    'metodo2_g_dia': sobrepeso_info.metodo2_g_dia,
+                    'metodo2_kcal': sobrepeso_info.metodo2_kcal,
+                    'metodo2_amdr': sobrepeso_info.metodo2_amdr
+                }
+            }
+
+            return Response(data, status=status.HTTP_200_OK)
+
+        except (GestanteInfo.DoesNotExist, SobrePesoInfo.DoesNotExist):
+            return Response({"error": "Gestante o información de sobrepeso no encontrada"}, status=status.HTTP_404_NOT_FOUND)

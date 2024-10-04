@@ -1,0 +1,24 @@
+version: '3'
+
+services:
+  db:
+    image: postgres:13
+    restart: always
+    environment:
+      POSTGRES_DB: gymapp_db
+      POSTGRES_USER: gymapp_user
+      POSTGRES_PASSWORD: juanda
+    volumes:
+      - ./postgres-data:/var/lib/postgresql/data
+
+  web:
+    build: .
+    command: gunicorn gymapp.wsgi:application --bind 0.0.0.0:8000
+    volumes:
+      - .:/app
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
+    environment:
+      DATABASE_URL: postgres://gymapp_user:juanda@db:5432/gymapp_db

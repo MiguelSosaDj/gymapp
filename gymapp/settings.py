@@ -24,7 +24,7 @@ SECRET_KEY = 'django-insecure-a_6cc&-=ink#ohn^1k3lu#)fw82mz*h*qj$f4d%=^+16piw@8+
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
-ALLOWED_HOSTS = ['localhost', '127.0.0.1', '192.168.1.77']
+ALLOWED_HOSTS = ['localhost', '127.0.0.1', '192.168.1.77', '192.168.1.3']
 
 
 # Application definition
@@ -87,9 +87,12 @@ CORS_ALLOW_HEADERS = [
     'x-requested-with',
 ]
 
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:8100",  # Agrega la URL de tu frontend aquí
+    "http://127.0.0.1:8100",  # Agrega esta también si trabajas con localhost
+    "http://192.168.1.3:8100",  # Si usas otra IP, agrégala aquí
+]
 # Resto de la configuración...
-
-ALLOWED_HOSTS = ['192.168.1.77', 'localhost', '127.0.0.1']
 
 ROOT_URLCONF = 'gymapp.urls'
 
@@ -114,15 +117,16 @@ WSGI_APPLICATION = 'gymapp.wsgi.application'
 
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
+import os
 
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'gymapp_db',
-        'USER': 'gymapp_user',
-        'PASSWORD': 'juanda',
-        'HOST': 'localhost',
-        'PORT': '5432',
+        'NAME': 'gymapp_db',  # El nombre de tu base de datos PostgreSQL
+        'USER': 'gymapp_user',  # Tu usuario de PostgreSQL
+        'PASSWORD': 'juanda',  # Tu contraseña de PostgreSQL
+        'HOST': 'localhost',  # Si la base de datos está corriendo localmente
+        'PORT': '5432',  # El puerto por defecto de PostgreSQL
     }
 }
 

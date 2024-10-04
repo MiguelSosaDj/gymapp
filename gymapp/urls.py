@@ -14,7 +14,7 @@ from usuarios.views import (
     SaveGestanteInfo, 
     UserInfoView, 
     ListUsuariosView,
-    LactanteView, GestanteView
+    LactanteView, GestanteView, SobrePesoView
 )
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
@@ -43,5 +43,7 @@ urlpatterns = [
     path('lactante/<int:lactante_id>/', LactanteView.as_view(), name='get_lactante_info'),
     path('gestante/<int:gestante_id>/', GestanteView.as_view(), name='gestante_info'),
     path('gestante/', GestanteView.as_view(), name='gestante_create'),
+    path('sobrepeso/<int:sobrepeso_id>/', SobrePesoView.as_view(), name='sobrepeso_info'),
+    path('sobrepeso/', SobrePesoView.as_view(), name='sobrepeso_create'),
 
 ]
